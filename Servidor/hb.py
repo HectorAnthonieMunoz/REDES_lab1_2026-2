@@ -1,5 +1,7 @@
 import socket
 import time
+# Función auxiliar para el envio constante de HEARBEATS.
+
 TOKEN = "9d40cfb700974c8d96ecc8673625e3ec"
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 while True:
