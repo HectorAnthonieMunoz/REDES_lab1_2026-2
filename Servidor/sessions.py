@@ -13,11 +13,12 @@ TOKEN_TTL = 600
 FIRST_HEARTBEAT_GRACE = 30
 HEARTBEAT_TIMEOUT = 60
 
-
+# Agrega una nueva fila a sesiones.csv al crear una sesión (LOGIN exitoso)
 def appendcsv(token, username, created):
     with csv_lock:
         with open(SESIONES_CSV, 'a', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow([token, username, created, created, "ACTIVO"])
+# Reescribe sesiones.csv completo a partir del estado en memoria (usado tras heartbeats/revocaciones)            
 def writecsv():
     with csv_lock:
         with open(SESIONES_CSV, 'w', newline='', encoding='utf-8') as f:
@@ -26,7 +27,7 @@ def writecsv():
             with lock:
                 for token, s in seshxtoken.items():
                     writer.writerow([token, s["username"], s["created"], s["last_heartbeat"] or s["created"], "ACTIVO"])
-
+# Determina si una sesión sigue siendo válida según TTL, gracia inicial y timeout de heartbeat
 def validsession(session):
     now = time.time()
     if now - session["created"] > TOKEN_TTL:
@@ -39,6 +40,7 @@ def validsession(session):
 
 
 
+# Revoca y elimina una sesión, ya sea por token o por su socket asociado; cierra el socket TCP
 def cleansession(conn=None, token=None):
     with lock:
         if conn is not None and token is None:
