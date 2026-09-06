@@ -10,16 +10,16 @@ from sessions import (
 )
 from paths import USUARIOS_CSV, HISTORIAL_CSV
 HOST = "0.0.0.0"
-TCP_PORT = 9000
-UDP_PORT = 9001
+TCP_PORT = 9000   # Puerto TCP donde se reciben LOGIN, MSG y LOGOUT
+UDP_PORT = 9001   # Puerto UDP informado al cliente para el envío de heartbeats
 
-
+# Crea el archivo CSV con su encabezado si todavía no existe
 def csvexiste(path, header):
     if not os.path.exists(path):
         with open(path, 'w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(header)
 
-
+# Verifica si un par username/password coincide con un registro en usuarios.csv
 def credcheck(username, password):
     with csv_lock:
         with open(USUARIOS_CSV, 'r', newline='', encoding='utf-8') as f:
@@ -30,13 +30,13 @@ def credcheck(username, password):
                     return True
     return False
 
-
+# Agrega una fila al historial de mensajes (historial.csv)
 def appendhist(username, message):
     with csv_lock:
         with open(HISTORIAL_CSV, 'a', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow([time.time(), username, message])
 
-
+# Retransmite un mensaje a todos los sockets con sesión activa, excepto al remitente
 def broadcast(sender_username, message, exclude_conn):
     with lock:
         targets = [s["socket"] for s in seshxtoken.values() if s["socket"] != exclude_conn]
@@ -47,7 +47,7 @@ def broadcast(sender_username, message, exclude_conn):
         except OSError:
             pass
 
-
+# Procesa el comando LOGIN: valida credenciales, genera token y registra la sesión
 def handlelogin(conn, username, password):
     if not credcheck(username, password):
         conn.sendall(b"ERROR INVALID_CREDENTIALS\n")
@@ -66,6 +66,10 @@ def handlelogin(conn, username, password):
     appendcsv(token, username, now)
     conn.sendall(f"OK {token} {UDP_PORT}\n".encode("utf-8"))
 
+
+
+
+# Procesa el comando MSG: valida la sesión, guarda el mensaje y lo retransmite
 def handlemsg(conn, token, message):
     with lock:
         session = seshxtoken.get(token)
@@ -83,7 +87,7 @@ def handlemsg(conn, token, message):
     conn.sendall(b"ACK\n")
     broadcast(username, message, exclude_conn=conn)
 
-
+# Interpreta una línea recibida por TCP y la despacha al handler correspondiente
 def dispatch(conn, line):
     parts = line.strip().split(" ", 2)
     if not parts or parts[0] == "":
@@ -100,6 +104,8 @@ def dispatch(conn, line):
     else:
         conn.sendall(b"ERROR UNKNOWN_COMMAND\n")
 
+
+# Hilo por cliente: lee del socket, delimita por '\n' y despacha cada comando recibido
 def handle_client(conn, addr):
     buffer = ""
     try:
@@ -123,7 +129,7 @@ def handle_client(conn, addr):
 
 
 
-
+# Inicializa los CSV, levanta el socket TCP en modo escucha y acepta clientes en hilos separados
 def main():
     csvexiste(USUARIOS_CSV, ["username", "password", "fecha_registro"])
     csvexiste(HISTORIAL_CSV, ["timestamp", "username", "mensaje"])
