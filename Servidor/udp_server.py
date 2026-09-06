@@ -4,11 +4,13 @@ import time
 
 from sessions import lock, seshxtoken, validsession, cleansession, writecsv
 
-HOST = "0.0.0.0"
-UDP_PORT = 9001
-WATCHDOG_INTERVAL = 5
+HOST = "0.0.0.0" 
+UDP_PORT = 9001   # Puerto UDP donde se reciben los datagramas HEARTBEAT
+WATCHDOG_INTERVAL = 5   # Cada cuántos segundos el watchdog revisa el estado de las sesiones
 
-def handlehb(sock):
+
+# Recibe datagramas HEARTBEAT <token> y actualiza el último heartbeat de la sesión correspondiente
+def handlehb(sock):   
     while True:
         try:
             data, addr = sock.recvfrom(1024)
@@ -30,7 +32,7 @@ def handlehb(sock):
 
 
 
-
+# Rutina en segundo plano que revisa periódicamente las sesiones y revoca las que expiraron
 def watchdog():
     while True:
         time.sleep(WATCHDOG_INTERVAL)
@@ -40,7 +42,7 @@ def watchdog():
             print(f"Watchdog: revoking expired session {token}")
             cleansession(token=token)
 
-
+# Levanta el socket UDP, inicia el watchdog en un hilo aparte y comienza a recibir heartbeats
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((HOST, UDP_PORT))
