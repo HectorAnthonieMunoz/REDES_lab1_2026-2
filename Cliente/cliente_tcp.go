@@ -17,6 +17,7 @@ import (
 var servAddr string = "0.0.0.0:9000";
 //var udpAddr string = "0.0.0.0:9001"
 var stop bool = false;
+var lock bool = false;
 
 func udp(token string, port string) {
 	// Connect to server
@@ -47,12 +48,23 @@ func udp(token string, port string) {
 	}
 }
 
-func listenToMsg(conn *net.TCPConn) {
+func listenToMsg(conn *net.TCPConn, c chan string) {
 	for true {
 		if stop {break;}
+		//if lock {continue;}
 		msg := make([]byte, 1024)
 		conn.Read(msg)
-		println(string(msg))
+
+		strMsg := string(msg[:])
+		strMsg, _, _ = strings.Cut(strMsg, "\n")
+
+		splitMsg := strings.SplitN(strMsg, " ", 3)
+
+		if (splitMsg[0] != "INCOMING") {
+			c <- string(strMsg)
+		} else {
+			println(splitMsg[1]+": "+splitMsg[2])
+		}
 	}
 }
 
@@ -103,18 +115,32 @@ func main() {
 		println("Revise que sus credenciales estén ingresadas correctamente")
 		os.Exit(1)
 	} else {
+		canal := make(chan string)
+
 		token := params[1]
 		port, _, _ := strings.Cut(params[2], "\n")
 		go udp(token, port)
-		go listenToMsg(conn)
+		go listenToMsg(conn, canal)
 		println("Ahora que está conectado, puede mandar mensajes a través de la consola")
-		println("También verá los mensajes de otros usuarios conectados al servidor en forma: INCOMING <usuario> <mensaje>")
-		for true {
-			//TODO: Arreglar bug que hace que solo se pueda enviar un mensaje
+		println("También verá los mensajes de otros usuarios conectados al servidor en forma <usuario>: <mensaje>")
+		println("Para cerrar sesión, simplemente escriba LOGOUT (todo mayúscula)")
+		for !stop {
 			reader := bufio.NewReader(os.Stdin)
 
 			strEcho, _ := reader.ReadString('\n')
+
 			strEcho = strings.TrimSpace(strEcho) //quitamos whitespaces rodeando al string
+
+			if (strEcho == "LOGOUT") {
+				query := "LOGOUT\n";
+				_, err = conn.Write([]byte(query))
+				if err != nil {
+					println("Escritura no hecha:", err.Error())
+					os.Exit(1)
+				}
+				stop = true;
+				break;
+			}
 
 			query := "MSG "+token+" "+strEcho+"\n";
 
@@ -123,13 +149,19 @@ func main() {
 				println("Escritura no hecha:", err.Error())
 				os.Exit(1)
 			}
-			reply := make([]byte, 4096)
-			_, err = conn.Read(reply)
-			if err != nil {
-				println("Escritura al servidor fallida:", err.Error())
-				os.Exit(1)
+			reply := <- canal;
+			replyParams := strings.Split(reply, " ");
+			if (replyParams[0] == "ACK") {
+				println("Servidor acusa recibo de mensaje exitosamente")
+			} else if (replyParams[0] == "ERROR"){
+				errMsg := replyParams[1];
+				if (errMsg == "UNKOWN_COMMAND") {
+					println("Se envió un comando inválido al servidor")
+				} else {
+					println("La sesión ha expirado o no es válida")
+					stop = true;
+				}
 			}
-			print(reply)
 		}
 	}
 
