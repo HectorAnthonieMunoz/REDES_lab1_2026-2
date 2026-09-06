@@ -5,16 +5,17 @@ import os
 import threading
 from datetime import datetime
 from paths import USUARIOS_CSV, HISTORIAL_CSV
-PORT = 8888
+PORT = 8888 
 HOST = "localhost"
-lock = threading.Lock()
+lock = threading.Lock() # Lock para proteger el acceso concurrente a usuarios.csv
+# Crea el archivo CSV con su encabezado si todavía no existe
 def csvexiste(path, header):
     if not os.path.exists(path):
         with open(path, 'w', newline='', encoding='utf-8') as f:
             csv.writer(f).writerow(header)
 
 
-
+# Revisa si un username ya está registrado en usuarios.csv
 def usuarioexiste(username):
     with open(USUARIOS_CSV, 'r', newline='', encoding='utf-8') as f:
         reader = csv.reader(f)
@@ -26,7 +27,7 @@ def usuarioexiste(username):
 
 
 
-
+# Handler HTTP que implementa los endpoints POST /register y GET /history
 class servidor(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/history":
@@ -67,8 +68,8 @@ class servidor(BaseHTTPRequestHandler):
             if not user or not passwrd:
                 self.send_error(400)
                 return
-
-            with lock:
+            
+            with lock:            
                 if usuarioexiste(user):
                     self.send_error(409)
                     return
@@ -85,7 +86,7 @@ class servidor(BaseHTTPRequestHandler):
 
 
 
-            
+# Inicializa los CSV necesarios y arranca el servidor HTTP  
 def main():
     csvexiste(USUARIOS_CSV, ["username", "password", "fecha_registro"])
     csvexiste(HISTORIAL_CSV, ["timestamp", "username", "mensaje"])
