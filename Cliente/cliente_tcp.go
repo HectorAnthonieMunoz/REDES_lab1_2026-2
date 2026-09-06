@@ -125,7 +125,7 @@ func main() {
 		println("También verá los mensajes de otros usuarios conectados al servidor en forma <usuario>: <mensaje>")
 		println("Para cerrar sesión, simplemente escriba LOGOUT (todo mayúscula)")
 		for !stop {
-			print(username+": ")
+			//print(username+": ")
 			reader := bufio.NewReader(os.Stdin)
 
 			strEcho, _ := reader.ReadString('\n')
