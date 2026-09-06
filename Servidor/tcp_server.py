@@ -85,19 +85,16 @@ def handlemsg(conn, token, message):
 
 
 def dispatch(conn, line):
-    print(line)
-    parts = line[0].strip().split(" ", 2)
+    parts = line.strip().split(" ", 2)
     if not parts or parts[0] == "":
         return
 
     cmd = parts[0]
 
     if cmd == "LOGIN" and len(parts) == 3:
-        params = line[-1].strip().split(" ")
-        handlelogin(conn, params[0], params[1])
+        handlelogin(conn, parts[1], parts[2])
     elif cmd == "MSG" and len(parts) == 3:
-        params = line[-1].strip().split(" ")
-        handlemsg(conn, params[0], params[1])
+        handlemsg(conn, parts[1], parts[2])
     elif cmd == "LOGOUT":
         cleansession(conn=conn)
     else:
@@ -111,17 +108,10 @@ def handle_client(conn, addr):
             if not data:
                 break
             buffer += data.decode("utf-8", errors="replace")
-            if "\n" in buffer:
-                lines = buffer.strip().split("\n")
-
-                request = []
-                for i in range(len(lines)):
-                    request.append(lines[i])
-
-                if request:
-                    dispatch(conn, request)
-                buffer = ""
-                
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                if line:
+                    dispatch(conn, line)
     except (ConnectionResetError, OSError):
         pass
     finally:
