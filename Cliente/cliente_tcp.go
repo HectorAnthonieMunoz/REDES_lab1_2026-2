@@ -12,12 +12,6 @@ import (
 	//"encoding/csv"
 )
 
-type Usuario struct {
-	Username string `json:"username"`
-	Nombre string `json:"nombre"`
-	Email string `json:"email"`
-}
-
 var clienteHTTP = http.DefaultClient;
 
 func main() {
@@ -25,19 +19,17 @@ func main() {
 
 	var username,nombre string;
 
-	//fmt.Println("Ligma balls")
-
 	fmt.Scan(&username, &nombre);
 
-	body := fmt.Sprintf(`{"username": "%s", "password": "%s"}`, username, nombre)
+	body := fmt.Sprintf(`%s %s`, username, nombre)
 
-	fmt.Println(body)
+	//fmt.Println(body)
 
 	r, err := http.NewRequest("LOGIN", url, strings.NewReader(body))
 	if (err != nil) {
 		panic(err)
 	}
-	r.Header.Add("Content-Type", "application/json")
+	r.Header.Add("Content-Type", "text")
 
 	resp, err := clienteHTTP.Do(r);
 	if (err != nil) {
