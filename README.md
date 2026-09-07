@@ -119,10 +119,24 @@ Sin respuesta explícita. Si el token existe, actualiza `timestamp_ultimo_heartb
 
 En cualquiera de estos casos, el servidor cierra el socket TCP del cliente afectado y elimina/invalida su entrada en `sesiones.csv`.
 
+## Clientes
+
+### Creación de usuario
+
+Al correr `registrar_usuario.go`, se pide el nombre de usuario y la contraseña a registrar. Luego se printea en la pantalla el código HTTP retornado por el servidor, para indicar el éxito o fracaso de la creación de la cuenta.
+
+### Comunicación
+
+Una vez creada la cuenta, o bien teniendo una ya existente en la base de datos, al correr `cliente_tcp.go` se piden las credenciales de login al usuario. Si son ingresadas correctamente, se conecta a los endpoint TCP y UDP. Se pueden mandar mensajes a través de la consola, los cuales pasan por el canal TCP, y recibir mensajes de otros usuarios conectados, que van a salir a través de la consola también. En el canal UDP, el cliente regularmente manda "latidos" por el socket cada 3 segundos hasta que se detiene la conexión.
+
+Los mensajes recibidos van a venir formateados de la forma `<usuario>: <mensaje>`
+
+Para cerrar sesión, simplemente se escribe LOGOUT en la consola, en toda mayúscula.
+
 ## Librerías utilizadas (lado servidor, Python)
 
 `socket`, `threading`, `http.server`, `csv`, `time`, `os`, `uuid`, `json`*
 
 ## Librerias utilizadas (lado cliente, Go)
 
-bufio, net, net/http, fmt, os, time, strings
+`bufio`, `net`, `net/http`, `fmt`, `os`, `time`, `strings`*
