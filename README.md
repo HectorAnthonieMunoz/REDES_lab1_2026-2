@@ -5,7 +5,7 @@
 | Nombre completo | Rol USM |
 |---|---|
 | Héctor Muñoz Vonk | 202373628-7 |
-| Juan redes | 1111111 |
+| Lucas Morrison | 202273547-3 |
 
 **Grupo N°:** 11
 
@@ -33,7 +33,15 @@ python main.py
 
 Ambos deben quedar corriendo simultáneamente. `servidor.py` escucha en el puerto 8888; `main.py` levanta el servidor TCP en 9000 y el servidor UDP en 9001 dentro del mismo proceso, para compartir el estado de sesiones en memoria.
 
-Desde el lado cliente: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+Desde la carpeta `Cliente/`:
+
+Para conectar al endpoint HTTP para crear un usuario:
+
+go run registrar_usuario.go
+
+Para conectar a los endpoint TCP y UDP de comunicación:
+
+go run cliente_tcp.go
 
 ## Archivos generados
 
@@ -114,3 +122,7 @@ En cualquiera de estos casos, el servidor cierra el socket TCP del cliente afect
 ## Librerías utilizadas (lado servidor, Python)
 
 `socket`, `threading`, `http.server`, `csv`, `time`, `os`, `uuid`, `json`*
+
+## Librerias utilizadas (lado cliente, Go)
+
+bufio, net, net/http, fmt, os, time, strings
