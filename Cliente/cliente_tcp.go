@@ -20,7 +20,10 @@ var stop bool = false;
 var lock bool = false;
 
 func udp(token string, port string) {
-	// Connect to server
+	//Este es el código para el hilo encargado de hacer la conexión UDP
+	//y mandar latidos al endpoint periódicamente.
+	//Toma como parámetros el token y el port obtenidos del servidor
+	//al momento del login.
 	connTo := "0.0.0.0:"+port
 
 	//print(connTo)
@@ -49,6 +52,11 @@ func udp(token string, port string) {
 }
 
 func listenToMsg(conn *net.TCPConn, c chan string) {
+	//Hilo que escucha perpetuamente al servidor UDP hasta terminar la conexión
+	//para recibir mensajes de otros usuarios y también pasar las respuestas
+	//de las queries del cliente de vuelta al hilo principal a través del canal c
+	//que es tomado como parámetro. También se toma como parámetro la conexión TCP
+	//propiamente tal.
 	for true {
 		if stop {break;}
 		//if lock {continue;}
@@ -69,12 +77,15 @@ func listenToMsg(conn *net.TCPConn, c chan string) {
 }
 
 func main() {
+	//Función principal del programa. Pedimos las credenciales de login al usuario
+	//antes de intentar conectar.
 	fmt.Println("Ingrese sus credenciales:")
 
 	var username,password string;
 
 	fmt.Scan(&username, &password)
 
+	// Intento de login al servidor
 	strEcho := fmt.Sprintf("LOGIN %s %s\n", username, password);
 	tcpAddr, err := net.ResolveTCPAddr("tcp", servAddr)
 	if err != nil {
@@ -88,6 +99,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Se hace el login request
 	_, err = conn.Write([]byte(strEcho))
 	if err != nil {
 		println("Escritura no hecha:", err.Error())
@@ -104,22 +116,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	println("reply from server=", string(reply));
+	//println("reply from server=", string(reply));
 
 	rep, _ := strings.CutSuffix(string(reply[:]), "\n");
 
 	params := strings.Split(rep, " ")
 
+	//Si el servidor devolvió error, paramos. Caso contrario, pasamos al programa principal del cliente
 	if params[0] == "ERROR" {
 		println("Login fallido con error "+params[1])
 		println("Revise que sus credenciales estén ingresadas correctamente")
 		os.Exit(1)
 	} else {
+		//Código principal del cliente mientras está conectado al servidor
 		canal := make(chan string)
 
 		token := params[1]
 		port, _, _ := strings.Cut(params[2], "\n")
-		go udp(token, port)
+		go udp(token, port) //Iniciamos los goroutines (en esencia, hilos hijos)
 		go listenToMsg(conn, canal)
 		println("Ahora que está conectado, puede mandar mensajes a través de la consola")
 		println("También verá los mensajes de otros usuarios conectados al servidor en forma <usuario>: <mensaje>")
@@ -132,6 +146,7 @@ func main() {
 
 			strEcho = strings.TrimSpace(strEcho) //quitamos whitespaces rodeando al string
 
+			//Si la query es logout, hacerlo en este bloque
 			if (strEcho == "LOGOUT") {
 				query := "LOGOUT\n";
 				_, err = conn.Write([]byte(query))
@@ -143,6 +158,7 @@ func main() {
 				break;
 			}
 
+			//Construcción del mensaje TCP a enviar
 			query := "MSG "+token+" "+strEcho+"\n";
 
 			_, err = conn.Write([]byte(query))
@@ -150,15 +166,15 @@ func main() {
 				println("Escritura no hecha:", err.Error())
 				os.Exit(1)
 			}
-			reply := <- canal;
+			reply := <- canal; //Obtenemos la respuesta a través del canal de escucha
 			replyParams := strings.Split(reply, " ");
-			if (replyParams[0] == "ACK") {
+			if (replyParams[0] == "ACK") { //Leemos el reply, si empieza con ACK estamos bien...
 				println("Servidor acusa recibo de mensaje exitosamente")
-			} else if (replyParams[0] == "ERROR"){
+			} else if (replyParams[0] == "ERROR"){ //...caso contrario, hay error y debemos manejarlo de acuerdo al caso
 				errMsg := replyParams[1];
 				if (errMsg == "UNKOWN_COMMAND") {
 					println("Se envió un comando inválido al servidor")
-				} else {
+				} else { //Sesión inválida o expirada, en ambos casos hay que detener la conexión
 					println("La sesión ha expirado o no es válida")
 					stop = true;
 				}
