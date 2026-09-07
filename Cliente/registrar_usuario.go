@@ -19,6 +19,8 @@ func main() {
 
 	var username,password string;
 
+	println("Ingrese su nombre y contraseña:")
+	
 	fmt.Scan(&username, &password);
 
 	body := fmt.Sprintf(`{"username": "%s", "password": "%s"}`, username, password)
